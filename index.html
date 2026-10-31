@@ -34,6 +34,7 @@
   .row{display:flex;gap:10px;flex-wrap:wrap}.row>div{flex:1;min-width:150px}
   .datehead{font-size:15px;font-weight:700;margin:20px 0 8px;color:#8a5a3b}
   .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}
+  .num{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--acc);color:#fff;font-size:13px;font-weight:700;align-items:center;justify-content:center;margin-right:8px;vertical-align:middle}
   .item p{margin:6px 0;line-height:1.7;white-space:pre-wrap}
   .meta{color:var(--dim);font-size:12px}
   .actions{margin-top:8px;display:flex;gap:8px}
@@ -139,14 +140,15 @@ async function load(){
   $("zoneTime").textContent = z && z.updated_at ? "上次更新："+new Date(z.updated_at).toLocaleString("zh-CN",{timeZone:"Asia/Shanghai"}) : "";
   checkAdmin();
 }
-function itemHtml(r){
+function itemHtml(r, idx){
+  const num = idx ? `<span class="num">${idx}</span>` : "";
   let body = "";
   if(cur.key==="work") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
   else if(cur.key==="life") body = `<p>${esc(r["内容"])}</p><div class="meta">${r["类型"]?("类型："+esc(r["类型"])+" · "):""}${r["备注"]?("备注："+esc(r["备注"])):""}</div>`;
   else if(cur.key==="reading") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
   else body = `<p>${esc(r["内容"])}</p><div class="meta">${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"待办")}</div>`;
   const acts = isAdmin ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
-  return `<div class="item">${body}${acts}</div>`;
+  return `<div class="item">${num}${body}${acts}</div>`;
 }
 function renderList(show){
   if(!show.length){ $("list").innerHTML = '<div class="msg">今天这里还是空的，慢慢记就好。</div>'; return; }
@@ -154,15 +156,15 @@ function renderList(show){
     const groups = new Map();
     show.forEach(r=>{ const b = r["书名"]||"未分书"; if(!groups.has(b)) groups.set(b,[]); groups.get(b).push(r); });
     let out = "";
-    groups.forEach((rs,b)=>{ out += `<div class="datehead">📖 《${esc(b)}》 · ${rs.length} 条</div>` + rs.map(itemHtml).join(""); });
+    groups.forEach((rs,b)=>{ out += `<div class="datehead">📖 《${esc(b)}》 · ${rs.length} 条</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join(""); });
     $("list").innerHTML = out;
   } else if(cur.key==="today"){
-    $("list").innerHTML = `<div class="datehead">今天 · ${fmtDate(todayBJ())}</div>` + show.map(itemHtml).join("");
+    $("list").innerHTML = `<div class="datehead">今天 · ${fmtDate(todayBJ())}</div>` + show.map((r,i)=>itemHtml(r,i+1)).join("");
   } else {
     const groups = new Map();
     show.forEach(r=>{ const d = r["日期"]||"未填日期"; if(!groups.has(d)) groups.set(d,[]); groups.get(d).push(r); });
     let out = "";
-    groups.forEach((rs,d)=>{ out += `<div class="datehead">${fmtDate(d)}</div>` + rs.map(itemHtml).join(""); });
+    groups.forEach((rs,d)=>{ out += `<div class="datehead">${fmtDate(d)}</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join(""); });
     $("list").innerHTML = out;
   }
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ editingId = +b.dataset.edit; const row = rows.find(r=>r.id===editingId); $("formCard").style.display="block"; renderForm(row); window.scrollTo({top:0,behavior:"smooth"}); });

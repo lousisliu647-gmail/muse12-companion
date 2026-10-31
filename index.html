@@ -138,6 +138,7 @@ async function load(){
   let show = filter ? rows.filter(r=>r["日期"]===filter) : rows;
   if(cur.key==="today" && !filter) show = rows.filter(r=>r["状态"]==="待办" || r["日期"]>=todayBJ());
   if(cur.key==="life" && !filter) show = rows.filter(r=>r["日期"] && r["日期"]>=weekAgoBJ());
+  show = show.filter(r=>r["网站显示"]!==false);
   renderList(show);
   const {data:z} = await sb.from("muse12_companion_zones").select("*").eq("页面", cur.zone).maybeSingle();
   $("zoneText").textContent = (z && z["内容"]) || "muse12 今天还没来更新这里，晚点再来看。";

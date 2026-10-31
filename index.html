@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>muse12小伴侣 · 慢慢记，慢慢长大</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#fff7ec;--card:#fffdf8;--peach:#ffe9d6;--peach2:#ffd9b8;--line:#f0d9c2;--txt:#5b4636;--dim:#a08a76;--acc:#e07856;--acc2:#f4a261;--green:#7fb069}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;padding-bottom:40px}
+  header{max-width:820px;margin:0 auto;padding:30px 18px 8px;text-align:center}
+  h1{font-family:Georgia,"Songti SC",serif;font-size:30px;margin:0 0 6px;letter-spacing:1px}
+  h1 span{color:var(--acc)}
+  .sub{color:var(--dim);font-size:14px;line-height:1.6}
+  .topbar{max-width:820px;margin:14px auto 0;padding:0 18px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;color:var(--txt)}
+  .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .loginbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--txt)}
+  #loginBox{max-width:820px;margin:12px auto 0;padding:0 18px;display:none;gap:8px;flex-wrap:wrap}
+  #loginBox input{flex:1;min-width:160px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none}
+  button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;color:var(--txt)}
+  button.main{background:var(--acc);border-color:var(--acc);color:#fff}
+  button.small{padding:5px 11px;font-size:12px}
+  button.danger{color:#b8543f;border-color:#f0c2b5;background:#fff5f1}
+  main{max-width:820px;margin:0 auto;padding:10px 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin:14px 0;box-shadow:0 4px 16px rgba(224,120,86,.08)}
+  .card h2{font-size:16px;margin:0 0 10px}
+  .hint{color:var(--dim);font-size:13px;line-height:1.7}
+  label{display:block;font-size:13px;color:var(--dim);margin:10px 0 4px}
+  input,textarea,select{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none;color:var(--txt)}
+  textarea{min-height:72px;resize:vertical}
+  .row{display:flex;gap:10px;flex-wrap:wrap}.row>div{flex:1;min-width:150px}
+  .datehead{font-size:15px;font-weight:700;margin:20px 0 8px;color:#8a5a3b}
+  .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}
+  .item p{margin:6px 0;line-height:1.7;white-space:pre-wrap}
+  .meta{color:var(--dim);font-size:12px}
+  .actions{margin-top:8px;display:flex;gap:8px}
+  .zone{background:linear-gradient(180deg,#fff1dc,#ffe9d6);border:1px solid #f2cfae}
+  .zone .tag{display:inline-block;background:#fff;border:1px solid #f2cfae;border-radius:999px;padding:3px 10px;font-size:12px;color:#b06a3f;margin-bottom:8px}
+  .zone p{line-height:1.8;white-space:pre-wrap}
+  .msg{text-align:center;color:var(--dim);padding:26px 0;font-size:14px}
+  footer{text-align:center;color:var(--dim);font-size:12px;margin-top:26px}
+  @media(max-width:520px){h1{font-size:26px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>☀️ muse12<span>小伴侣</span></h1>
+  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能新增、编辑、删除。</div>
+</header>
+<div class="topbar">
+  <div class="tabs" id="tabs"></div>
+  <button class="loginbtn" id="adminBtn">管理员登录</button>
+</div>
+<div id="loginBox">
+  <input type="email" id="em" placeholder="管理员邮箱" autocomplete="email">
+  <input type="password" id="pw" placeholder="密码" autocomplete="current-password">
+  <button class="main" id="doLogin">登录</button>
+  <button id="cancelLogin">收起</button>
+</div>
+<main>
+  <div id="formCard" class="card" style="display:none">
+    <h2 id="formTitle">新增一条</h2>
+    <div id="formFields"></div>
+    <div style="margin-top:12px;display:flex;gap:8px"><button class="main" id="saveBtn">保存</button><button id="cancelEdit">取消</button></div>
+    <div class="hint" id="formHint"></div>
+  </div>
+  <div class="card" style="display:none" id="filterCard">
+    <label>只看某一天（留空就是全部）</label>
+    <div style="display:flex;gap:8px"><input type="date" id="dateFilter"><button id="clearFilter">看全部</button></div>
+  </div>
+  <div id="list"></div>
+  <div class="card zone">
+    <span class="tag">🌿 muse12区 · 由 muse12 每天更新一次</span>
+    <h2 style="margin-top:2px">muse12的话</h2>
+    <p id="zoneText">正在取今天的整理…</p>
+    <div class="meta" id="zoneTime"></div>
+    <div class="hint">这块你不用管，也不用在网站上改，muse12 每天来替换一次，不会越积越多。</div>
+  </div>
+</main>
+<footer>慢慢记，慢慢长大 · 数据存在你自己的 Supabase，页面放在 GitHub Pages</footer>
+<script>
+const SUPABASE_URL = "https://jiznfazmeazrngxjojvn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_VoeosHASLcntSbBJ9rTfSA_ifjXh41E";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const PAGES = [
+  {key:"work", name:"工作记事", table:"muse12_work_notes", zone:"工作记事", fields:[["日期","date"],["内容","textarea"],["备注","text"]], note:"工作记事只记三样：日期、内容、备注。"},
+  {key:"life", name:"生活记事", table:"muse12_life_notes", zone:"生活记事", fields:[["日期","date"],["内容","textarea"],["类型","select"],["备注","text"]], note:"生活记事：健康、心情、记事、学习、娱乐，拿不准就先写内容。"},
+  {key:"reading", name:"读书笔记", table:"muse12_reading_notes", zone:"读书笔记", fields:[["书名","text"],["日期","date"],["内容","textarea"],["备注","text"]], note:"读书笔记按书名分组，同一本书里的条目再按日期排。"},
+  {key:"today", name:"今日提醒", table:"muse12_today_reminders", zone:"今日提醒", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"]], note:"今天的提醒清单。到点前 10 分钟，muse12 会用飞书私聊再提醒你一次。"}
+];
+let cur = PAGES[0], rows = [], editingId = null, isAdmin = false;
+const $ = id => document.getElementById(id);
+const todayBJ = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Shanghai"}).format(new Date());
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const fmtDate = d => { if(!d) return ""; const dt = new Date(d+"T12:00:00"); const w = ["日","一","二","三","四","五","六"][dt.getDay()]; const p = d.split("-"); return p[0]+"年"+(+p[1])+"月"+(+p[2])+"日 · 星期"+w; };
+function renderTabs(){
+  $("tabs").innerHTML = PAGES.map(p=>`<button class="tab ${p.key===cur.key?"on":""}" data-k="${p.key}">${p.name}</button>`).join("");
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{cur=PAGES.find(p=>p.key===b.dataset.k); editingId=null; $("dateFilter").value=""; load();});
+}
+async function checkAdmin(){
+  const {data} = await sb.auth.getSession();
+  isAdmin = !!data.session;
+  $("adminBtn").textContent = isAdmin ? "管理员已登录（退出）" : "管理员登录";
+  $("formCard").style.display = isAdmin ? "block" : "none";
+  if(isAdmin) renderForm();
+}
+function renderForm(editRow){
+  const f = cur.fields;
+  $("formTitle").textContent = editingId ? "编辑一条" : "新增一条 · "+cur.name;
+  $("formHint").textContent = cur.note;
+  $("formFields").innerHTML = f.map(([name,type])=>{
+    const v = editRow ? (editRow[name]||"") : "";
+    if(type==="textarea") return `<label>${name}</label><textarea data-f="${name}">${esc(v)}</textarea>`;
+    if(type==="select") return `<label>${name}</label><select data-f="${name}"><option value="">不填</option>${["健康","心情","记事","学习","娱乐"].map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
+    if(type==="status") return `<label>${name}</label><select data-f="${name}"><option ${v==="待办"?"selected":""}>待办</option><option ${v==="已完成"?"selected":""}>已完成</option></select>`;
+    return `<label>${name}</label><input type="${type}" data-f="${name}" value="${esc(v)}">`;
+  }).join("");
+  if(!editRow){
+    const d = document.querySelector('[data-f="日期"]'); if(d) d.value = todayBJ();
+  }
+}
+async function load(){
+  renderTabs();
+  $("filterCard").style.display = cur.key==="today" ? "none" : "block";
+  $("list").innerHTML = '<div class="msg">正在取记事…</div>';
+  let q = sb.from(cur.table).select("*").order("日期",{ascending:false}).order("id",{ascending:false});
+  if(cur.key==="today") q = sb.from(cur.table).select("*").eq("日期", todayBJ()).order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:false});
+  const {data, error} = await q;
+  if(error){ $("list").innerHTML = '<div class="msg">取记事失败：'+esc(error.message)+'，过一会儿刷新试试</div>'; return; }
+  rows = data || [];
+  const filter = $("dateFilter").value;
+  const show = filter ? rows.filter(r=>r["日期"]===filter) : rows;
+  renderList(show);
+  const {data:z} = await sb.from("muse12_companion_zones").select("*").eq("页面", cur.zone).maybeSingle();
+  $("zoneText").textContent = (z && z["内容"]) || "muse12 今天还没来更新这里，晚点再来看。";
+  $("zoneTime").textContent = z && z.updated_at ? "上次更新："+new Date(z.updated_at).toLocaleString("zh-CN",{timeZone:"Asia/Shanghai"}) : "";
+  checkAdmin();
+}
+function itemHtml(r){
+  let body = "";
+  if(cur.key==="work") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
+  else if(cur.key==="life") body = `<p>${esc(r["内容"])}</p><div class="meta">${r["类型"]?("类型："+esc(r["类型"])+" · "):""}${r["备注"]?("备注："+esc(r["备注"])):""}</div>`;
+  else if(cur.key==="reading") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
+  else body = `<p>${esc(r["内容"])}</p><div class="meta">${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"待办")}</div>`;
+  const acts = isAdmin ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
+  return `<div class="item">${body}${acts}</div>`;
+}
+function renderList(show){
+  if(!show.length){ $("list").innerHTML = '<div class="msg">今天这里还是空的，慢慢记就好。</div>'; return; }
+  if(cur.key==="reading"){
+    const groups = new Map();
+    show.forEach(r=>{ const b = r["书名"]||"未分书"; if(!groups.has(b)) groups.set(b,[]); groups.get(b).push(r); });
+    let out = "";
+    groups.forEach((rs,b)=>{ out += `<div class="datehead">📖 《${esc(b)}》 · ${rs.length} 条</div>` + rs.map(itemHtml).join(""); });
+    $("list").innerHTML = out;
+  } else if(cur.key==="today"){
+    $("list").innerHTML = `<div class="datehead">今天 · ${fmtDate(todayBJ())}</div>` + show.map(itemHtml).join("");
+  } else {
+    const groups = new Map();
+    show.forEach(r=>{ const d = r["日期"]||"未填日期"; if(!groups.has(d)) groups.set(d,[]); groups.get(d).push(r); });
+    let out = "";
+    groups.forEach((rs,d)=>{ out += `<div class="datehead">${fmtDate(d)}</div>` + rs.map(itemHtml).join(""); });
+    $("list").innerHTML = out;
+  }
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ editingId = +b.dataset.edit; const row = rows.find(r=>r.id===editingId); $("formCard").style.display="block"; renderForm(row); window.scrollTo({top:0,behavior:"smooth"}); });
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("确定删除这一条吗？删了就找不回来了。")) return;
+    const {error} = await sb.from(cur.table).delete().eq("id", +b.dataset.del);
+    if(error) alert("删除失败："+error.message); else load();
+  });
+}
+$("adminBtn").onclick = async ()=>{
+  if(isAdmin){ await sb.auth.signOut(); isAdmin=false; editingId=null; load(); return; }
+  $("loginBox").style.display = $("loginBox").style.display==="flex" ? "none" : "flex";
+};
+$("cancelLogin").onclick = ()=>{ $("loginBox").style.display="none"; };
+$("doLogin").onclick = async ()=>{
+  const email = $("em").value.trim(), pw = $("pw").value;
+  if(!email || !pw){ alert("请先填邮箱和密码"); return; }
+  const {error} = await sb.auth.signInWithPassword({email, password:pw});
+  if(error) alert("登录失败："+error.message);
+  else { $("pw").value=""; $("loginBox").style.display="none"; load(); }
+};
+$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin) renderForm(); else $("formCard").style.display="none"; };
+$("saveBtn").onclick = async ()=>{
+  const obj = {};
+  document.querySelectorAll("#formFields [data-f]").forEach(el=>{ obj[el.dataset.f] = el.value.trim() || null; });
+  if(!obj["内容"]){ alert("内容不能为空"); return; }
+  if(cur.key==="reading" && !obj["书名"]){ alert("书名不能为空"); return; }
+  let res;
+  if(editingId) res = await sb.from(cur.table).update(obj).eq("id", editingId);
+  else res = await sb.from(cur.table).insert(obj);
+  if(res.error) alert("保存失败："+res.error.message);
+  else { editingId=null; renderForm(); load(); }
+};
+$("dateFilter").onchange = ()=>load();
+$("clearFilter").onclick = ()=>{ $("dateFilter").value=""; load(); };
+renderTabs(); load();
+</script>
+</body>
+</html>

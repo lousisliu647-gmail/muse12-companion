@@ -91,7 +91,8 @@ const PAGES = [
   {key:"work", name:"工作记事", table:"muse12_work_notes", zone:"工作记事", fields:[["日期","date"],["内容","textarea"],["备注","text"]], note:"工作记事只记三样：日期、内容、备注。"},
   {key:"life", name:"生活记事", table:"muse12_life_notes", zone:"生活记事", fields:[["日期","date"],["内容","textarea"],["类型","select"],["备注","text"]], note:"生活记事：健康、心情、记事、学习、娱乐，拿不准就先写内容。网站只显示最近一周，超过一周的只存数据库、不在网站上显示。"},
   {key:"reading", name:"读书笔记", table:"muse12_reading_notes", zone:"读书笔记", fields:[["书名","text"],["日期","date"],["内容","textarea"],["备注","text"]], note:"读书笔记按书名分组，同一本书里的条目再按日期排。"},
-  {key:"today", name:"今日提醒", table:"muse12_today_reminders", zone:"今日提醒", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"]], note:"待办清单：今天、未来和以前没打勾的都会显示；打勾就算完成，今天还能看到，第二天就自动消失；没打勾的会一直留着，直到你打勾。到点前 10 分钟，muse12 会用飞书私聊再提醒你一次。"}
+  {key:"today", name:"今日提醒", table:"muse12_today_reminders", zone:"今日提醒", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"]], note:"待办清单：今天、未来和以前没打勾的都会显示；打勾就算完成，今天还能看到，第二天就自动消失；没打勾的会一直留着，直到你打勾。到点前 10 分钟，muse12 会用飞书私聊再提醒你一次。"},
+  {key:"temp", name:"其他机器人的传话区域", table:"muse12_temp_uploads", zone:"其他机器人的传话区域", fields:[["日期","date"],["内容","textarea"],["来源","text"],["备注","text"]], note:"这是给其他机器人传话的地方：不用登录就能投递，投进来先只待在这里，不会直接进工作、生活、读书、今日提醒；muse12 看到后会分类归档到对应的记事页。"}
 ];
 let cur = PAGES[0], rows = [], editingId = null, isAdmin = false;
 const $ = id => document.getElementById(id);
@@ -107,8 +108,8 @@ async function checkAdmin(){
   const {data} = await sb.auth.getSession();
   isAdmin = !!data.session;
   $("adminBtn").textContent = isAdmin ? "管理员已登录（退出）" : "管理员登录";
-  $("formCard").style.display = isAdmin ? "block" : "none";
-  if(isAdmin) renderForm();
+  $("formCard").style.display = (isAdmin || cur.key==="temp") ? "block" : "none";
+  if(isAdmin || cur.key==="temp") renderForm();
 }
 function renderForm(editRow){
   const f = cur.fields;
@@ -138,6 +139,7 @@ async function load(){
   let show = filter ? rows.filter(r=>r["日期"]===filter) : rows;
   if(cur.key==="today" && !filter) show = rows.filter(r=>r["状态"]==="待办" || r["日期"]>=todayBJ());
   if(cur.key==="life" && !filter) show = rows.filter(r=>r["日期"] && r["日期"]>=weekAgoBJ());
+  if(cur.key==="temp") show = show.filter(r=>r["状态"]==="待处理");
   show = show.filter(r=>r["网站显示"]!==false);
   renderList(show);
   const {data:z} = await sb.from("muse12_companion_zones").select("*").eq("页面", cur.zone).maybeSingle();
@@ -151,6 +153,7 @@ function itemHtml(r, idx){
   if(cur.key==="work") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
   else if(cur.key==="life") body = `<p>${esc(r["内容"])}</p><div class="meta">${r["类型"]?("类型："+esc(r["类型"])+" · "):""}${r["备注"]?("备注："+esc(r["备注"])):""}</div>`;
   else if(cur.key==="reading") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
+  else if(cur.key==="temp") body = `<p>${esc(r["内容"])}</p><div class="meta">${r["来源"]?("来源："+esc(r["来源"])+" · "):""}状态：${esc(r["状态"]||"待处理")}${r["备注"]?(" · 备注："+esc(r["备注"])):""}</div>`;
   else body = `<p>${esc(r["内容"])}</p><div class="meta">${r["日期"] && r["日期"]!==todayBJ()?("原定："+esc(r["日期"])+" · "):""}${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"待办")}</div>`;
   const acts = isAdmin ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
   const check = cur.key==="today" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已完成"?"checked":""} ${isAdmin?"":"disabled"} title="${isAdmin?"打勾算完成":"登录管理员后才能打勾"}" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
@@ -180,6 +183,7 @@ function renderList(show){
     show.forEach(r=>{ const d = r["日期"]||"未填日期"; if(!groups.has(d)) groups.set(d,[]); groups.get(d).push(r); });
     let out = "";
     if(cur.key==="life" && !$("dateFilter").value) out += `<div class="hint">只显示最近一周（含今天）的生活记事，更早的还在数据库里保存着，不会在网站上显示；想查更早的，告诉我日期，我帮你查。</div>`;
+    if(cur.key==="temp" && !$("dateFilter").value) out += `<div class="hint">只显示待处理的传话，muse12 归档后会把这里标记为已处理，已归档的内容在对应的记事页里看；投递不用登录，投进来不会直接进主记事。</div>`;
     groups.forEach((rs,d)=>{ out += `<div class="datehead">${fmtDate(d)}</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join(""); });
     $("list").innerHTML = out;
   }
@@ -207,7 +211,7 @@ $("doLogin").onclick = async ()=>{
   if(error) alert("登录失败："+error.message);
   else { $("pw").value=""; $("loginBox").style.display="none"; load(); }
 };
-$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin) renderForm(); else $("formCard").style.display="none"; };
+$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin || cur.key==="temp") renderForm(); else $("formCard").style.display="none"; };
 $("saveBtn").onclick = async ()=>{
   const obj = {};
   document.querySelectorAll("#formFields [data-f]").forEach(el=>{ obj[el.dataset.f] = el.value.trim() || null; });

@@ -50,7 +50,7 @@
 <body>
 <header>
   <h1>☀️ muse12<span>小伴侣</span></h1>
-  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能新增、编辑、删除。</div>
+  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒 · 今日研究报告<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能编辑、删除。今日研究报告和传话区不用登录也能投递、打勾。</div>
 </header>
 <div class="topbar">
   <div class="tabs" id="tabs"></div>
@@ -92,6 +92,7 @@ const PAGES = [
   {key:"life", name:"生活记事", table:"muse12_life_notes", zone:"生活记事", fields:[["日期","date"],["内容","textarea"],["类型","select"],["备注","text"]], note:"生活记事：健康、心情、记事、学习、娱乐，拿不准就先写内容。网站只显示最近一周，超过一周的只存数据库、不在网站上显示。"},
   {key:"reading", name:"读书笔记", table:"muse12_reading_notes", zone:"读书笔记", fields:[["书名","text"],["日期","date"],["内容","textarea"],["备注","text"]], note:"读书笔记按书名分组，同一本书里的条目再按日期排。"},
   {key:"today", name:"今日提醒", table:"muse12_today_reminders", zone:"今日提醒", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"]], note:"待办清单：今天、未来和以前没打勾的都会显示；打勾就算完成，今天还能看到，第二天就自动消失；没打勾的会一直留着，直到你打勾。到点前 10 分钟，muse12 会用飞书私聊再提醒你一次。"},
+  {key:"reports", name:"今日研究报告", table:"muse12_daily_reports", zone:"今日研究报告", fields:[["报告名字","text"],["日期","date"],["时间","time"],["备注","text"],["来源","text"]], note:"今日研究报告：只显示今天的报告，打勾就是看完了，没打勾就是还没看；时间是你加上这条的时间，日期默认今天。每天 22:30 muse12 会把当天看过的和没看过的汇总成清单，用飞书私聊发给你；第二天 06:00 这页会全部清空，换成新一天的报告，不管打勾没打勾都不留。这一页不用登录也能投递和打勾：你跟 muse12 或其他机器人说一句看了什么报告，ta 就会帮你记进来、打上勾。"},
   {key:"temp", name:"其他机器人的传话区域", table:"muse12_temp_uploads", zone:"其他机器人的传话区域", fields:[["日期","date"],["内容","textarea"],["来源","text"],["备注","text"]], note:"这是给其他机器人传话的地方：不用登录就能投递，投进来先只待在这里，不会直接进工作、生活、读书、今日提醒；muse12 看到后会分类归档到对应的记事页。"}
 ];
 let cur = PAGES[0], rows = [], editingId = null, isAdmin = false;
@@ -108,8 +109,8 @@ async function checkAdmin(){
   const {data} = await sb.auth.getSession();
   isAdmin = !!data.session;
   $("adminBtn").textContent = isAdmin ? "管理员已登录（退出）" : "管理员登录";
-  $("formCard").style.display = (isAdmin || cur.key==="temp") ? "block" : "none";
-  if(isAdmin || cur.key==="temp") renderForm();
+  $("formCard").style.display = (isAdmin || cur.key==="temp" || cur.key==="reports") ? "block" : "none";
+  if(isAdmin || cur.key==="temp" || cur.key==="reports") renderForm();
 }
 function renderForm(editRow){
   const f = cur.fields;
@@ -124,6 +125,10 @@ function renderForm(editRow){
   }).join("");
   if(!editRow){
     const d = document.querySelector('[data-f="日期"]'); if(d) d.value = todayBJ();
+    if(cur.key==="reports"){
+      const t = document.querySelector('[data-f="时间"]');
+      if(t && !t.value) t.value = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Shanghai",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());
+    }
   }
 }
 async function load(){
@@ -132,6 +137,7 @@ async function load(){
   $("list").innerHTML = '<div class="msg">正在取记事…</div>';
   let q = sb.from(cur.table).select("*").order("日期",{ascending:false}).order("id",{ascending:false});
   if(cur.key==="today") q = sb.from(cur.table).select("*").order("日期",{ascending:true}).order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:false});
+  if(cur.key==="reports") q = sb.from(cur.table).select("*").order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:true});
   const {data, error} = await q;
   if(error){ $("list").innerHTML = '<div class="msg">取记事失败：'+esc(error.message)+'，过一会儿刷新试试</div>'; return; }
   rows = data || [];
@@ -140,6 +146,7 @@ async function load(){
   if(cur.key==="today" && !filter) show = rows.filter(r=>r["状态"]==="待办" || r["日期"]>=todayBJ());
   if(cur.key==="life" && !filter) show = rows.filter(r=>r["日期"] && r["日期"]>=weekAgoBJ());
   if(cur.key==="temp") show = show.filter(r=>r["状态"]==="待处理");
+  if(cur.key==="reports" && !filter) show = show.filter(r=>r["日期"]===todayBJ());
   show = show.filter(r=>r["网站显示"]!==false);
   renderList(show);
   const {data:z} = await sb.from("muse12_companion_zones").select("*").eq("页面", cur.zone).maybeSingle();
@@ -154,11 +161,13 @@ function itemHtml(r, idx){
   else if(cur.key==="life") body = `<p>${esc(r["内容"])}</p><div class="meta">${r["类型"]?("类型："+esc(r["类型"])+" · "):""}${r["备注"]?("备注："+esc(r["备注"])):""}</div>`;
   else if(cur.key==="reading") body = `<p>${esc(r["内容"])}</p>${r["备注"]?`<p class="meta">备注：${esc(r["备注"])}</p>`:""}`;
   else if(cur.key==="temp") body = `<p>${esc(r["内容"])}</p><div class="meta">${r["来源"]?("来源："+esc(r["来源"])+" · "):""}状态：${esc(r["状态"]||"待处理")}${r["备注"]?(" · 备注："+esc(r["备注"])):""}</div>`;
+  else if(cur.key==="reports") body = `<p>${esc(r["报告名字"])}</p><div class="meta">${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"未读")}${r["来源"]?(" · 来源："+esc(r["来源"])):""}${r["备注"]?(" · 备注："+esc(r["备注"])):""}</div>`;
   else body = `<p>${esc(r["内容"])}</p><div class="meta">${r["日期"] && r["日期"]!==todayBJ()?("原定："+esc(r["日期"])+" · "):""}${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"待办")}</div>`;
   const acts = isAdmin ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
   const check = cur.key==="today" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已完成"?"checked":""} ${isAdmin?"":"disabled"} title="${isAdmin?"打勾算完成":"登录管理员后才能打勾"}" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
-  const doneCls = (cur.key==="today" && r["状态"]==="已完成") ? " done" : "";
-  return `<div class="item${doneCls}">${check}${num}${body}${acts}</div>`;
+  const checkReports = cur.key==="reports" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已读"?"checked":""} title="打勾就是看完了" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
+  const doneCls = ((cur.key==="today" && r["状态"]==="已完成") || (cur.key==="reports" && r["状态"]==="已读")) ? " done" : "";
+  return `<div class="item${doneCls}">${check}${checkReports}${num}${body}${acts}</div>`;
 }
 function renderList(show){
   if(!show.length){ $("list").innerHTML = '<div class="msg">今天这里还是空的，慢慢记就好。</div>'; return; }
@@ -184,6 +193,7 @@ function renderList(show){
     let out = "";
     if(cur.key==="life" && !$("dateFilter").value) out += `<div class="hint">只显示最近一周（含今天）的生活记事，更早的还在数据库里保存着，不会在网站上显示；想查更早的，告诉我日期，我帮你查。</div>`;
     if(cur.key==="temp" && !$("dateFilter").value) out += `<div class="hint">只显示待处理的传话，muse12 归档后会把这里标记为已处理，已归档的内容在对应的记事页里看；投递不用登录，投进来不会直接进主记事。</div>`;
+    if(cur.key==="reports" && !$("dateFilter").value) out += `<div class="hint">只显示今天的报告：打勾就是看完了，没打勾就是还没看；不用登录也能投递和打勾。每天 22:30 汇总发飞书私聊，第二天 06:00 全部清空。</div>`;
     groups.forEach((rs,d)=>{ out += `<div class="datehead">${fmtDate(d)}</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join(""); });
     $("list").innerHTML = out;
   }
@@ -194,8 +204,10 @@ function renderList(show){
     if(error) alert("删除失败："+error.message); else load();
   });
   document.querySelectorAll("[data-check]").forEach(cb=>cb.onchange=async()=>{
-    if(!isAdmin){ alert("请先登录管理员账号，才能打勾"); cb.checked = !cb.checked; return; }
-    const {error} = await sb.from(cur.table).update({"状态": cb.checked ? "已完成" : "待办"}).eq("id", +cb.dataset.check);
+    if(cur.key==="today" && !isAdmin){ alert("请先登录管理员账号，才能打勾"); cb.checked = !cb.checked; return; }
+    const done = cur.key==="reports" ? "已读" : "已完成";
+    const todo = cur.key==="reports" ? "未读" : "待办";
+    const {error} = await sb.from(cur.table).update({"状态": cb.checked ? done : todo}).eq("id", +cb.dataset.check);
     if(error){ alert("打勾失败："+error.message); cb.checked = !cb.checked; } else load();
   });
 }
@@ -211,11 +223,16 @@ $("doLogin").onclick = async ()=>{
   if(error) alert("登录失败："+error.message);
   else { $("pw").value=""; $("loginBox").style.display="none"; load(); }
 };
-$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin || cur.key==="temp") renderForm(); else $("formCard").style.display="none"; };
+$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin || cur.key==="temp" || cur.key==="reports") renderForm(); else $("formCard").style.display="none"; };
 $("saveBtn").onclick = async ()=>{
   const obj = {};
   document.querySelectorAll("#formFields [data-f]").forEach(el=>{ obj[el.dataset.f] = el.value.trim() || null; });
-  if(!obj["内容"]){ alert("内容不能为空"); return; }
+  if(cur.key==="reports"){
+    if(!obj["报告名字"]){ alert("报告名字不能为空"); return; }
+    if(!obj["时间"]) obj["时间"] = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Shanghai",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());
+  } else {
+    if(!obj["内容"]){ alert("内容不能为空"); return; }
+  }
   if(cur.key==="reading" && !obj["书名"]){ alert("书名不能为空"); return; }
   let res;
   if(editingId) res = await sb.from(cur.table).update(obj).eq("id", editingId);

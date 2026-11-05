@@ -50,7 +50,7 @@
 <body>
 <header>
   <h1>☀️ muse12<span>小伴侣</span></h1>
-  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒 · 今日研究报告 · muse新窗听书记录 · 交易决策区域<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能编辑、删除，听书记录也只有管理员能打勾。今日研究报告和传话区不用登录也能投递、打勾。</div>
+  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒 · 今日研究报告 · muse新窗听书记录 · 交易决策区域 · 任务清单<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能编辑、删除，听书记录也只有管理员能打勾。今日研究报告和传话区不用登录也能投递、打勾。任务清单不用登录也能新增、编辑、删除、打勾。</div>
 </header>
 <div class="topbar">
   <div class="tabs" id="tabs"></div>
@@ -95,13 +95,17 @@ const PAGES = [
   {key:"reports", name:"今日研究报告", table:"muse12_daily_reports", zone:"今日研究报告", fields:[["报告名字","text"],["日期","date"],["时间","time"],["备注","text"],["来源","text"]], note:"今日研究报告：只显示今天的报告，打勾就是看完了，没打勾就是还没看；时间是你加上这条的时间，日期默认今天。每天 22:30 muse12 会把当天看过的和没看过的汇总成清单，用飞书私聊发给你；第二天 06:00 这页会全部清空，换成新一天的报告，不管打勾没打勾都不留。这一页不用登录也能投递和打勾：你跟 muse12 或其他机器人说一句看了什么报告，ta 就会帮你记进来、打上勾。"},
   {key:"temp", name:"其他机器人的传话区域", table:"muse12_temp_uploads", zone:"其他机器人的传话区域", fields:[["日期","date"],["内容","textarea"],["来源","text"],["备注","text"]], note:"这是给其他机器人传话的地方：不用登录就能投递，投进来先只待在这里，不会直接进工作、生活、读书、今日提醒；muse12 看到后会分类归档到对应的记事页。"},
   {key:"listen", name:"muse新窗听书记录", table:"muse12_reading_list", zone:"muse新窗听书记录", fields:[["书名","text"],["第几集","text"],["来源","text"],["上架日期","date"],["备注","text"]], note:"听书记录按书名分组，同一本书按集数排；打勾就是这一集听完了，打勾当天还显示，第二天起不再显示，数据还在书单里记为已读；没听完的会一直留着。所有人都能看，只有管理员能新增、编辑、删除、打勾。"},
-  {key:"trade", name:"交易决策区域", table:"muse12_trading_decisions", zone:"交易决策区域", fields:[["日期","date"],["时间","time"],["事件","textarea"],["备注","text"]], note:"交易决策区域随手记：只记日期、时间、事件、备注，决策和复盘都写在事件里。每天工作日 16:30 muse12 会把当天的汇总发飞书私聊，当天没有也会发一句无内容。所有人能看，只有管理员能新增、编辑、删除。"}
+  {key:"trade", name:"交易决策区域", table:"muse12_trading_decisions", zone:"交易决策区域", fields:[["日期","date"],["时间","time"],["事件","textarea"],["备注","text"]], note:"交易决策区域随手记：只记日期、时间、事件、备注，决策和复盘都写在事件里。每天工作日 16:30 muse12 会把当天的汇总发飞书私聊，当天没有也会发一句无内容。所有人能看，只有管理员能新增、编辑、删除。"},
+  {key:"tasks", name:"任务清单", table:"muse12_task_checklist", zone:"任务清单", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"],["备注","text"]], note:"任务清单：每天 20:00 muse12 会把这张表里的事项列成清单，用飞书私聊发给你打勾；在这里打勾、新增、编辑、删除，都不用登录，改完就和每晚清单同步；你跟 muse12 在聊天里说哪条完成了，muse12 改这张表，网站刷新后也能看到。本周的已完成和未完成都列着，已完成的变灰加删除线，下一周已完成的就不再列；没打勾的会一直留着，跨周的注明是上周未完成。"}
 ];
 let cur = PAGES[0], rows = [], editingId = null, isAdmin = false;
 const $ = id => document.getElementById(id);
 const todayBJ = () => new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Shanghai"}).format(new Date());
 const weekAgoBJ = () => { const d = new Date(todayBJ()+"T12:00:00"); d.setDate(d.getDate()-6); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
 const tomorrowBJ = () => { const d = new Date(todayBJ()+"T12:00:00"); d.setDate(d.getDate()+1); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
+const mondayBJ = () => { const d = new Date(todayBJ()+"T12:00:00"); const day = d.getDay(); d.setDate(d.getDate() + (day===0 ? -6 : 1-day)); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
+const mondayOf = ds => { if(!ds) return ""; const d = new Date(ds+"T12:00:00"); const day = d.getDay(); d.setDate(d.getDate() + (day===0 ? -6 : 1-day)); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
+const sundayOfMonday = ms => { const d = new Date(ms+"T12:00:00"); d.setDate(d.getDate()+6); const p = n => String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
 const episodeRank = ep => { if(!ep) return 9999; const s = String(ep); const m = s.match(/\d+/); if(m) return parseInt(m[0],10)*100 + (s.includes("下")?50:0); if(s.includes("上")) return 1; if(s.includes("下")) return 2; return 9999; };
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const fmtDate = d => { if(!d) return ""; const dt = new Date(d+"T12:00:00"); const w = ["日","一","二","三","四","五","六"][dt.getDay()]; const p = d.split("-"); return p[0]+"年"+(+p[1])+"月"+(+p[2])+"日 · 星期"+w; };
@@ -113,8 +117,8 @@ async function checkAdmin(){
   const {data} = await sb.auth.getSession();
   isAdmin = !!data.session;
   $("adminBtn").textContent = isAdmin ? "管理员已登录（退出）" : "管理员登录";
-  $("formCard").style.display = (isAdmin || cur.key==="temp" || cur.key==="reports") ? "block" : "none";
-  if(isAdmin || cur.key==="temp" || cur.key==="reports") renderForm();
+  $("formCard").style.display = (isAdmin || cur.key==="temp" || cur.key==="reports" || cur.key==="tasks") ? "block" : "none";
+  if(isAdmin || cur.key==="temp" || cur.key==="reports" || cur.key==="tasks") renderForm();
 }
 function renderForm(editRow){
   const f = cur.fields;
@@ -144,6 +148,7 @@ async function load(){
   if(cur.key==="reports") q = sb.from(cur.table).select("*").order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:true});
   if(cur.key==="listen") q = sb.from(cur.table).select("*").order("上架日期",{ascending:false}).order("id",{ascending:true});
   if(cur.key==="trade") q = sb.from(cur.table).select("*").order("日期",{ascending:false}).order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:true});
+  if(cur.key==="tasks") q = sb.from(cur.table).select("*").order("日期",{ascending:true}).order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:true});
   const {data, error} = await q;
   if(error){ $("list").innerHTML = '<div class="msg">取记事失败：'+esc(error.message)+'，过一会儿刷新试试</div>'; return; }
   rows = data || [];
@@ -172,12 +177,13 @@ function itemHtml(r, idx){
   else if(cur.key==="listen") body = `<p>${esc(r["第几集"]||"未分集")}</p><div class="meta">上架日期：${esc(r["上架日期"]||"")} · 来源：${esc(r["来源"]||"")} · 是否结束：${r["状态"]==="已读"?"已结束":"未结束"}${r["备注"]?(" · 备注："+esc(r["备注"])):""}</div>`;
   else if(cur.key==="trade") body = `<p>${esc(r["事件"])}</p><div class="meta">${r["时间"]?("时间："+esc(String(r["时间"]).slice(0,5))+" · "):""}${r["备注"]?("备注："+esc(r["备注"])):""}</div>`;
   else body = `<p>${esc(r["内容"])}</p><div class="meta">${r["日期"] && r["日期"]!==todayBJ()?("原定："+esc(r["日期"])+" · "):""}${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"待办")}</div>`;
-  const acts = isAdmin ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
+  const acts = (isAdmin || cur.key==="tasks") ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
   const check = cur.key==="today" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已完成"?"checked":""} ${isAdmin?"":"disabled"} title="${isAdmin?"打勾算完成":"登录管理员后才能打勾"}" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
   const checkReports = cur.key==="reports" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已读"?"checked":""} title="打勾就是看完了" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
   const checkListen = cur.key==="listen" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已读"?"checked":""} ${isAdmin?"":"disabled"} title="${isAdmin?"打勾就是这一集听完了":"登录管理员后才能打勾"}" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
-  const doneCls = ((cur.key==="today" && r["状态"]==="已完成") || (cur.key==="reports" && r["状态"]==="已读") || (cur.key==="listen" && r["状态"]==="已读")) ? " done" : "";
-  return `<div class="item${doneCls}">${check}${checkReports}${checkListen}${num}${body}${acts}</div>`;
+  const checkTasks = cur.key==="tasks" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已完成"?"checked":""} title="打勾算完成，不用登录" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
+  const doneCls = ((cur.key==="today" && r["状态"]==="已完成") || (cur.key==="tasks" && r["状态"]==="已完成") || (cur.key==="reports" && r["状态"]==="已读") || (cur.key==="listen" && r["状态"]==="已读")) ? " done" : "";
+  return `<div class="item${doneCls}">${check}${checkReports}${checkListen}${checkTasks}${num}${body}${acts}</div>`;
 }
 function renderList(show){
   if(!show.length){ $("list").innerHTML = '<div class="msg">今天这里还是空的，慢慢记就好。</div>'; return; }
@@ -211,6 +217,22 @@ function renderList(show){
     if(overdueRows.length) out += `<div class="datehead">之前没打勾的 · 还留着</div><div class="hint">这些是以前没完成的，打勾后第二天就自动消失了。</div>` + overdueRows.map((r,i)=>itemHtml(r,i+1)).join("");
     if(futureRows.length) out += `<div class="datehead">未来 · 还没到日子</div><div class="hint">这些是以后日子的待办，到了那天会在今天那组里；以前已打勾的第二天就自动消失了。</div>` + futureRows.map((r,i)=>itemHtml(r,i+1)).join("");
     if(!out) out = '<div class="msg">今天这里还是空的，慢慢记就好。</div>';
+    $("list").innerHTML = out;
+  } else if(cur.key==="tasks"){
+    let out = "";
+    if($("dateFilter").value){
+      out += `<div class="datehead">${fmtDate($("dateFilter").value)}</div>` + show.map((r,i)=>itemHtml(r,i+1)).join("");
+    } else {
+      out += `<div class="hint">任务清单和每天 20:00 的飞书清单是同一张表：在这里打勾、新增、编辑、删除，都不用登录，改完就和每晚清单同步；你跟 muse12 在聊天里说哪条完成了，muse12 改这张表，网站刷新后也能看到。本周的已完成和未完成都列着，已完成的变灰加删除线，下一周已完成的就不再列；没打勾的会一直留着。</div>`;
+      const mon = mondayBJ();
+      const carried = show.filter(r=>mondayOf(r["日期"]) < mon && r["状态"]==="待办");
+      const currentWeek = show.filter(r=>mondayOf(r["日期"]) === mon);
+      const future = show.filter(r=>mondayOf(r["日期"]) > mon);
+      if(carried.length) out += `<div class="datehead">上周未完成 · 还留着</div><div class="hint">这些是上周还没打勾的，打勾后就不再列了。</div>` + carried.map((r,i)=>itemHtml(r,i+1)).join("");
+      if(currentWeek.length) out += `<div class="datehead">本周 · ${fmtDate(mon)} 至 ${fmtDate(sundayOfMonday(mon))}</div>` + currentWeek.map((r,i)=>itemHtml(r,i+1)).join("");
+      if(future.length) out += `<div class="datehead">未来 · 还没到那周</div>` + future.map((r,i)=>itemHtml(r,i+1)).join("");
+      if(!carried.length && !currentWeek.length && !future.length) out = '<div class="msg">今天这里还是空的，慢慢记就好。</div>';
+    }
     $("list").innerHTML = out;
   } else {
     const groups = new Map();
@@ -251,7 +273,7 @@ $("doLogin").onclick = async ()=>{
   if(error) alert("登录失败："+error.message);
   else { $("pw").value=""; $("loginBox").style.display="none"; load(); }
 };
-$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin || cur.key==="temp" || cur.key==="reports") renderForm(); else $("formCard").style.display="none"; };
+$("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin || cur.key==="temp" || cur.key==="reports" || cur.key==="tasks") renderForm(); else $("formCard").style.display="none"; };
 $("saveBtn").onclick = async ()=>{
   const obj = {};
   document.querySelectorAll("#formFields [data-f]").forEach(el=>{ obj[el.dataset.f] = el.value.trim() || null; });

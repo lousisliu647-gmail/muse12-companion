@@ -17,6 +17,14 @@
   .tabs{display:flex;gap:8px;flex-wrap:wrap}
   .tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;font-size:14px;cursor:pointer;color:var(--txt)}
   .tab.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .tab-links{border-color:#7ec8f0;color:#0284c7}
+  .tab-links.on{background:#38bdf8;border-color:#38bdf8;color:#fff}
+  body.links-page .num{background:#7c5cbf}
+  body.links-page button.main{background:#7c5cbf;border-color:#7c5cbf}
+  body.links-page .zone{background:linear-gradient(180deg,#f3efff,#e9e2ff);border-color:#d3c2f5}
+  body.links-page .zone .tag{border-color:#d3c2f5;color:#6b4fa8}
+  .linkname{color:#6d28d9;font-weight:700;font-size:16px}
+  .linkname:hover{color:#7c5cbf}
   .loginbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--txt)}
   #loginBox{max-width:820px;margin:12px auto 0;padding:0 18px;display:none;gap:8px;flex-wrap:wrap}
   #loginBox input{flex:1;min-width:160px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none}
@@ -50,7 +58,7 @@
 <body>
 <header>
   <h1>☀️ muse12<span>小伴侣</span></h1>
-  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒 · 今日研究报告 · muse新窗听书记录 · 交易决策区域 · 任务清单<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能编辑、删除，听书记录也只有管理员能打勾。今日研究报告和传话区不用登录也能投递、打勾。任务清单不用登录也能新增、编辑、删除、打勾。</div>
+  <div class="sub">工作记事 · 生活记事 · 读书笔记 · 今日提醒 · 今日研究报告 · muse新窗听书记录 · 交易决策区域 · 任务清单 · Muse网址全家桶<br>不用登录 Muse 也能打开，拿到链接就能看；只有管理员登录后才能编辑、删除，听书记录也只有管理员能打勾。今日研究报告和传话区不用登录也能投递、打勾。任务清单不用登录也能新增、编辑、删除、打勾。网址全家桶只有管理员能新增、编辑、删除，你跟 muse12 说一声，muse12 也能帮你加。</div>
 </header>
 <div class="topbar">
   <div class="tabs" id="tabs"></div>
@@ -96,7 +104,8 @@ const PAGES = [
   {key:"temp", name:"其他机器人的传话区域", table:"muse12_temp_uploads", zone:"其他机器人的传话区域", fields:[["日期","date"],["内容","textarea"],["来源","text"],["备注","text"]], note:"这是给其他机器人传话的地方：不用登录就能投递，投进来先只待在这里，不会直接进工作、生活、读书、今日提醒；muse12 看到后会分类归档到对应的记事页。"},
   {key:"listen", name:"muse新窗听书记录", table:"muse12_reading_list", zone:"muse新窗听书记录", fields:[["书名","text"],["第几集","text"],["来源","text"],["上架日期","date"],["备注","text"]], note:"听书记录按书名分组，同一本书按集数排；打勾就是这一集听完了，打勾当天还显示，第二天起不再显示，数据还在书单里记为已读；没听完的会一直留着。所有人都能看，只有管理员能新增、编辑、删除、打勾。"},
   {key:"trade", name:"交易决策区域", table:"muse12_trading_decisions", zone:"交易决策区域", fields:[["日期","date"],["时间","time"],["事件","textarea"],["备注","text"]], note:"交易决策区域随手记：只记日期、时间、事件、备注，决策和复盘都写在事件里。每天工作日 16:30 muse12 会把当天的汇总发飞书私聊，当天没有也会发一句无内容。所有人能看，只有管理员能新增、编辑、删除。"},
-  {key:"tasks", name:"任务清单", table:"muse12_task_checklist", zone:"任务清单", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"],["备注","text"]], note:"任务清单：每天 20:00 muse12 会把这张表里的事项列成清单，用飞书私聊发给你打勾；在这里打勾、新增、编辑、删除，都不用登录，改完就和每晚清单同步；你跟 muse12 在聊天里说哪条完成了，muse12 改这张表，网站刷新后也能看到。本周的已完成和未完成都列着，已完成的变灰加删除线，下一周已完成的就不再列；没打勾的会一直留着，跨周的注明是上周未完成。"}
+  {key:"tasks", name:"任务清单", table:"muse12_task_checklist", zone:"任务清单", fields:[["日期","date"],["时间","time"],["内容","textarea"],["状态","status"],["备注","text"]], note:"任务清单：每天 20:00 muse12 会把这张表里的事项列成清单，用飞书私聊发给你打勾；在这里打勾、新增、编辑、删除，都不用登录，改完就和每晚清单同步；你跟 muse12 在聊天里说哪条完成了，muse12 改这张表，网站刷新后也能看到。本周的已完成和未完成都列着，已完成的变灰加删除线，下一周已完成的就不再列；没打勾的会一直留着，跨周的注明是上周未完成。"},
+  {key:"links", name:"Muse网址全家桶", table:"muse12_links", zone:"Muse网址全家桶", fields:[["名字","text"],["网址","text"],["来源","text"],["类型","text"],["备注","text"]], note:"网址全家桶：名字和网址必填，来源（muse2、muse6…）和类型（期权期货、研报…）都是选填，不填也行；备注也是选填。点名字就打开那个网站，新标签页打开。所有人能看，只有管理员能新增、编辑、删除，你跟 muse12 说一声，muse12 也能帮你加。"}
 ];
 let cur = PAGES[0], rows = [], editingId = null, isAdmin = false;
 const $ = id => document.getElementById(id);
@@ -110,7 +119,8 @@ const episodeRank = ep => { if(!ep) return 9999; const s = String(ep); const m =
 const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const fmtDate = d => { if(!d) return ""; const dt = new Date(d+"T12:00:00"); const w = ["日","一","二","三","四","五","六"][dt.getDay()]; const p = d.split("-"); return p[0]+"年"+(+p[1])+"月"+(+p[2])+"日 · 星期"+w; };
 function renderTabs(){
-  $("tabs").innerHTML = PAGES.map(p=>`<button class="tab ${p.key===cur.key?"on":""}" data-k="${p.key}">${p.name}</button>`).join("");
+  $("tabs").innerHTML = PAGES.map(p=>`<button class="tab ${p.key==="links"?"tab-links":""} ${p.key===cur.key?"on":""}" data-k="${p.key}">${p.name}</button>`).join("");
+  document.body.classList.toggle("links-page", cur.key==="links");
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{cur=PAGES.find(p=>p.key===b.dataset.k); editingId=null; $("dateFilter").value=""; load();});
 }
 async function checkAdmin(){
@@ -141,9 +151,10 @@ function renderForm(editRow){
 }
 async function load(){
   renderTabs();
-  $("filterCard").style.display = cur.key==="today" ? "none" : "block";
+  $("filterCard").style.display = (cur.key==="today" || cur.key==="links") ? "none" : "block";
   $("list").innerHTML = '<div class="msg">正在取记事…</div>';
   let q = sb.from(cur.table).select("*").order("日期",{ascending:false}).order("id",{ascending:false});
+  if(cur.key==="links") q = sb.from(cur.table).select("*").order("id",{ascending:true});
   if(cur.key==="today") q = sb.from(cur.table).select("*").order("日期",{ascending:true}).order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:false});
   if(cur.key==="reports") q = sb.from(cur.table).select("*").order("时间",{ascending:true,nullsFirst:false}).order("id",{ascending:true});
   if(cur.key==="listen") q = sb.from(cur.table).select("*").order("上架日期",{ascending:false}).order("id",{ascending:true});
@@ -176,6 +187,7 @@ function itemHtml(r, idx){
   else if(cur.key==="reports") body = `<p>${esc(r["报告名字"])}</p><div class="meta">${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"未读")}${r["来源"]?(" · 来源："+esc(r["来源"])):""}${r["备注"]?(" · 备注："+esc(r["备注"])):""}</div>`;
   else if(cur.key==="listen") body = `<p>${esc(r["第几集"]||"未分集")}</p><div class="meta">上架日期：${esc(r["上架日期"]||"")} · 来源：${esc(r["来源"]||"")} · 是否结束：${r["状态"]==="已读"?"已结束":"未结束"}${r["备注"]?(" · 备注："+esc(r["备注"])):""}</div>`;
   else if(cur.key==="trade") body = `<p>${esc(r["事件"])}</p><div class="meta">${r["时间"]?("时间："+esc(String(r["时间"]).slice(0,5))+" · "):""}${r["备注"]?("备注："+esc(r["备注"])):""}</div>`;
+  else if(cur.key==="links") body = `<p><a class="linkname" href="${esc(r["网址"])}" target="_blank" rel="noopener">🔗 ${esc(r["名字"])}</a></p><div class="meta">${r["类型"]?("类型："+esc(r["类型"])+" · "):""}${r["备注"]?("备注："+esc(r["备注"])+" · "):""}网址：${esc(r["网址"])}</div>`;
   else body = `<p>${esc(r["内容"])}</p><div class="meta">${r["日期"] && r["日期"]!==todayBJ()?("原定："+esc(r["日期"])+" · "):""}${r["时间"]?("时间："+esc(r["时间"])+" · "):""}状态：${esc(r["状态"]||"待办")}</div>`;
   const acts = (isAdmin || cur.key==="tasks") ? `<div class="actions"><button class="small" data-edit="${r.id}">编辑</button><button class="small danger" data-del="${r.id}">删除</button></div>` : "";
   const check = cur.key==="today" ? `<input type="checkbox" data-check="${r.id}" ${r["状态"]==="已完成"?"checked":""} ${isAdmin?"":"disabled"} title="${isAdmin?"打勾算完成":"登录管理员后才能打勾"}" style="width:20px;height:20px;accent-color:var(--acc);vertical-align:middle;margin-right:6px">` : "";
@@ -234,6 +246,16 @@ function renderList(show){
       if(!carried.length && !currentWeek.length && !future.length) out = '<div class="msg">今天这里还是空的，慢慢记就好。</div>';
     }
     $("list").innerHTML = out;
+  } else if(cur.key==="links"){
+    let out = `<div class="hint">点名字就打开对应的网站，新标签页打开；来源（muse2、muse6…）和类型（期权期货、研报…）都是选填，不填也行。所有人能看，只有管理员能新增、编辑、删除，你跟 muse12 说一声，muse12 也能帮你加。</div>`;
+    const groups = new Map();
+    show.forEach(r=>{ const s = r["来源"]||"未分类"; if(!groups.has(s)) groups.set(s,[]); groups.get(s).push(r); });
+    const sortedGroups = [...groups.entries()].sort((a,b)=> (a[0]==="未分类") - (b[0]==="未分类") || String(a[0]).localeCompare(String(b[0]), "zh-CN"));
+    sortedGroups.forEach(([s,rs])=>{
+      out += `<div class="datehead">🔗 ${esc(s)} · ${rs.length} 个网址</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join("");
+    });
+    if(!show.length) out = '<div class="msg">这里还是空的，慢慢记就好。</div>';
+    $("list").innerHTML = out;
   } else {
     const groups = new Map();
     show.forEach(r=>{ const d = r["日期"]||"未填日期"; if(!groups.has(d)) groups.set(d,[]); groups.get(d).push(r); });
@@ -277,7 +299,11 @@ $("cancelEdit").onclick = ()=>{ editingId=null; if(isAdmin || cur.key==="temp" |
 $("saveBtn").onclick = async ()=>{
   const obj = {};
   document.querySelectorAll("#formFields [data-f]").forEach(el=>{ obj[el.dataset.f] = el.value.trim() || null; });
-  if(cur.key==="reports"){
+  if(cur.key==="links"){
+    if(!obj["名字"]){ alert("名字不能为空"); return; }
+    if(!obj["网址"]){ alert("网址不能为空"); return; }
+    if(!/^https?:\/\//.test(obj["网址"])){ alert("网址要以 http:// 或 https:// 开头"); return; }
+  } else if(cur.key==="reports"){
     if(!obj["报告名字"]){ alert("报告名字不能为空"); return; }
     if(!obj["时间"]) obj["时间"] = new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Shanghai",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date());
   } else if(cur.key!=="listen" && cur.key!=="trade") {

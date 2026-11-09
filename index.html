@@ -156,6 +156,9 @@ function renderForm(editRow){
 }
 async function load(){
   renderTabs();
+  // 网址页：新增表单放页面最后（2026-11-09 用户定），其他页表单仍在顶部不动。
+  if(cur.key==="links") $("formCard").parentElement.appendChild($("formCard"));
+  else $("formCard").parentElement.insertBefore($("formCard"), $("filterCard"));
   $("filterCard").style.display = (cur.key==="today" || cur.key==="links") ? "none" : "block";
   $("list").innerHTML = '<div class="msg">正在取记事…</div>';
   let q = sb.from(cur.table).select("*").order("日期",{ascending:false}).order("id",{ascending:false});
@@ -280,7 +283,7 @@ function renderList(show){
     groups.forEach((rs,d)=>{ out += `<div class="datehead">${fmtDate(d)}</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join(""); });
     $("list").innerHTML = out;
   }
-  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ editingId = +b.dataset.edit; const row = rows.find(r=>r.id===editingId); $("formCard").style.display="block"; renderForm(row); window.scrollTo({top:0,behavior:"smooth"}); });
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{ editingId = +b.dataset.edit; const row = rows.find(r=>r.id===editingId); $("formCard").style.display="block"; renderForm(row); $("formCard").scrollIntoView({behavior:"smooth",block:"start"}); });
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
     if(!confirm("确定删除这一条吗？删了就找不回来了。")) return;
     const {error} = await sb.from(cur.table).delete().eq("id", +b.dataset.del);

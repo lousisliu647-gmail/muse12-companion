@@ -27,7 +27,9 @@
   .linkname:hover{color:#7c5cbf}
   .linkgroup{border:1px solid #d3c2f5;border-radius:16px;padding:12px 14px 8px;margin:14px 0;background:#fffdf8}
   .linkgroup .datehead{margin:2px 0 8px}
-  .linkgroup .item:last-child{margin-bottom:4px}
+  .linkgroup .item{border:none;background:transparent;border-radius:0;box-shadow:none;padding:10px 4px;margin:0}
+  .linkgroup .item + .item{border-top:1px solid #e9ddf7}
+  .linkgroup .item:last-child{padding-bottom:6px}
   .loginbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--txt)}
   #loginBox{max-width:820px;margin:12px auto 0;padding:0 18px;display:none;gap:8px;flex-wrap:wrap}
   #loginBox input{flex:1;min-width:160px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none}

@@ -25,6 +25,9 @@
   body.links-page .zone .tag{border-color:#d3c2f5;color:#6b4fa8}
   .linkname{color:#6d28d9;font-weight:700;font-size:16px}
   .linkname:hover{color:#7c5cbf}
+  .linkgroup{border:1px solid #d3c2f5;border-radius:16px;padding:12px 14px 8px;margin:14px 0;background:#fffdf8}
+  .linkgroup .datehead{margin:2px 0 8px}
+  .linkgroup .item:last-child{margin-bottom:4px}
   .loginbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;color:var(--txt)}
   #loginBox{max-width:820px;margin:12px auto 0;padding:0 18px;display:none;gap:8px;flex-wrap:wrap}
   #loginBox input{flex:1;min-width:160px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;background:#fff;outline:none}
@@ -248,11 +251,19 @@ function renderList(show){
     $("list").innerHTML = out;
   } else if(cur.key==="links"){
     let out = `<div class="hint">点名字就打开对应的网站，新标签页打开；来源（muse2、muse6…）和类型（期权期货、研报…）都是选填，不填也行。所有人能看，只有管理员能新增、编辑、删除，你跟 muse12 说一声，muse12 也能帮你加。</div>`;
+    // 板块归类（2026-11-09 用户定）：按名字把几条并到一个板块里，剩下的仍按来源分组；新浪放最后。
+    const sectionOf = r => {
+      const n = r["名字"] || "";
+      if(n === "museoutlook 催眠小窗" || n === "qqmuse在线朗读工作台") return "在线听";
+      if(n === "muse6的盘前计划" || n === "littlemuse6总任务汇总表") return "muse6";
+      return r["来源"] || "未分类";
+    };
+    const sectionOrder = ["东财策略", "muse2", "muse6", "在线听", "yanjiugongju01", "未分类", "新浪"];
     const groups = new Map();
-    show.forEach(r=>{ const s = r["来源"]||"未分类"; if(!groups.has(s)) groups.set(s,[]); groups.get(s).push(r); });
-    const sortedGroups = [...groups.entries()].sort((a,b)=> (a[0]==="未分类") - (b[0]==="未分类") || String(a[0]).localeCompare(String(b[0]), "zh-CN"));
+    show.forEach(r=>{ const s = sectionOf(r); if(!groups.has(s)) groups.set(s,[]); groups.get(s).push(r); });
+    const sortedGroups = [...groups.entries()].sort((a,b)=>{ const ra = sectionOrder.indexOf(a[0]), rb = sectionOrder.indexOf(b[0]); return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb) || String(a[0]).localeCompare(String(b[0]), "zh-CN"); });
     sortedGroups.forEach(([s,rs])=>{
-      out += `<div class="datehead">🔗 ${esc(s)} · ${rs.length} 个网址</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join("");
+      out += `<div class="linkgroup"><div class="datehead">🔗 ${esc(s)} · ${rs.length} 个网址</div>` + rs.map((r,i)=>itemHtml(r,i+1)).join("") + `</div>`;
     });
     if(!show.length) out = '<div class="msg">这里还是空的，慢慢记就好。</div>';
     $("list").innerHTML = out;

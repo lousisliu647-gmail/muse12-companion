@@ -258,9 +258,9 @@ function renderList(show){
       const n = r["名字"] || "";
       if(n === "museoutlook 催眠小窗" || n === "qqmuse在线朗读工作台") return "在线听";
       if(n === "muse6的盘前计划" || n === "littlemuse6总任务汇总表") return "muse6";
-      return r["来源"] || "未分类";
+      return r["来源"] || "其他人的网站";
     };
-    const sectionOrder = ["东财策略", "muse2", "muse6", "在线听", "yanjiugongju01", "未分类", "新浪"];
+    const sectionOrder = ["东财策略", "muse2", "muse6", "在线听", "yanjiugongju01", "其他人的网站", "新浪"];
     const groups = new Map();
     show.forEach(r=>{ const s = sectionOf(r); if(!groups.has(s)) groups.set(s,[]); groups.get(s).push(r); });
     const sortedGroups = [...groups.entries()].sort((a,b)=>{ const ra = sectionOrder.indexOf(a[0]), rb = sectionOrder.indexOf(b[0]); return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb) || String(a[0]).localeCompare(String(b[0]), "zh-CN"); });

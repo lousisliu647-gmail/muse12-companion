@@ -259,7 +259,7 @@ function renderList(show){
     // 板块归类（2026-11-09 用户定）：按名字把几条并到一个板块里，剩下的仍按来源分组；新浪放最后。
     const sectionOf = r => {
       const n = r["名字"] || "";
-      if(n === "museoutlook 催眠小窗" || n === "qqmuse在线朗读工作台") return "在线听";
+      if(n === "museoutlook 催眠小窗" || n === "qqmuse在线朗读工作台" || n === "健康小闹钟") return "在线听";
       if(n === "muse6的盘前计划" || n === "littlemuse6总任务汇总表") return "muse6";
       return r["来源"] || "其他人的网站";
     };
